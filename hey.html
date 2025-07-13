@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Naghul's To Do List</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background-color 1s;
+    }
+    .container {
+      max-width: 800px;
+      margin: 60px auto;
+      padding: 30px;
+      border-radius: 20px;
+      transition: background 0.5s, color 0.5s;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .dark-theme {
+      background-color: #111;
+      color: #fff;
+    }
+    .light-theme {
+      background-color: #f0f0f0;
+      color: #000;
+    }
+    h1 {
+      font-size: 2.5rem;
+      text-align: center;
+    }
+    input, select, button {
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px 5px;
+      border-radius: 8px;
+      border: none;
+    }
+    input[type="text"], input[type="date"], select {
+      width: 22%;
+    }
+    input:disabled, select:disabled {
+      background-color: #222;
+      color: white;
+      border: 1px solid #444;
+    }
+    #addBtn {
+      background-color: green;
+      color: white;
+    }
+    #toggleTheme {
+      background-color: dodgerblue;
+      color: white;
+    }
+    #exportBtn {
+      background-color: orange;
+      color: black;
+    }
+    .task {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .task input[type="text"], .task input[type="date"], .task select {
+      margin: 5px 5px 5px 0;
+    }
+    .actions button {
+      margin: 5px 5px 0 0;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .edit { background: cyan; }
+    .save { background: limegreen; color: black; }
+    .delete { background: crimson; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container dark-theme" id="mainContainer">
+    <h1>📝 Naghul's To Do List</h1>
+    <input type="text" id="taskInput" placeholder="New task" />
+    <input type="date" id="dateInput" />
+    <select id="prioritySelect">
+      <option>High</option>
+      <option>Medium</option>
+      <option>Low</option>
+    </select>
+    <button id="addBtn">Add</button>
+    <button id="toggleTheme">Toggle Theme</button>
+    <button id="exportBtn">Export Tasks</button>
+
+    <div id="taskList"></div>
+  </div>
+
+  <script>
+    const taskInput = document.getElementById("taskInput");
+    const dateInput = document.getElementById("dateInput");
+    const prioritySelect = document.getElementById("prioritySelect");
+    const taskList = document.getElementById("taskList");
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    const bgColors = ["orange", "yellow", "red", "purple", "pink", "darkblue"];
+    let currentBg = 0;
+    let isDark = true;
+
+    setInterval(() => {
+      document.body.style.backgroundColor = bgColors[currentBg];
+      currentBg = (currentBg + 1) % bgColors.length;
+    }, 3000);
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      taskList.innerHTML = "";
+      tasks.forEach((task, index) => {
+        const div = document.createElement("div");
+        div.className = "task";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = task.name;
+        nameInput.disabled = true;
+        nameInput.id = `name-${index}`;
+
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.value = task.date;
+        dateInput.disabled = true;
+        dateInput.id = `date-${index}`;
+
+        const prioritySelect = document.createElement("select");
+        prioritySelect.id = `priority-${index}`;
+        ["High", "Medium", "Low"].forEach(p => {
+          const opt = document.createElement("option");
+          opt.textContent = p;
+          if (p === task.priority) opt.selected = true;
+          prioritySelect.appendChild(opt);
+        });
+        prioritySelect.disabled = true;
+
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "actions";
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "edit";
+        editBtn.onclick = () => enableEdit(index);
+
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "Save";
+        saveBtn.className = "save";
+        saveBtn.onclick = () => saveEdit(index);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "delete";
+        deleteBtn.onclick = () => deleteTask(index);
+
+        actionsDiv.append(editBtn, saveBtn, deleteBtn);
+        div.append(nameInput, dateInput, prioritySelect, actionsDiv);
+        taskList.appendChild(div);
+      });
+    }
+
+    function addTask() {
+      const name = taskInput.value.trim();
+      const date = dateInput.value;
+      const priority = prioritySelect.value;
+
+      if (!name || !date) {
+        alert("Please fill out task name and date.");
+        return;
+      }
+
+      tasks.push({ name, date, priority });
+      saveTasks();
+      taskInput.value = "";
+      dateInput.value = "";
+      prioritySelect.selectedIndex = 0;
+      renderTasks();
+    }
+
+    function enableEdit(index) {
+      document.getElementById(`name-${index}`).disabled = false;
+      document.getElementById(`date-${index}`).disabled = false;
+      document.getElementById(`priority-${index}`).disabled = false;
+    }
+
+    function saveEdit(index) {
+      const name = document.getElementById(`name-${index}`).value.trim();
+      const date = document.getElementById(`date-${index}`).value;
+      const priority = document.getElementById(`priority-${index}`).value;
+
+      if (!name || !date) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      tasks[index] = { name, date, priority };
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      renderTasks();
+    }
+
+    function exportTasks() {
+      let data = "Naghul's Task List:\n\n";
+      tasks.forEach((task, i) => {
+        data += `${i + 1}. Task: ${task.name}, Date: ${task.date}, Priority: ${task.priority}\n`;
+      });
+      const blob = new Blob([data], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "naghuls_todo_list.txt";
+      link.click();
+    }
+
+    document.getElementById("addBtn").addEventListener("click", addTask);
+    document.getElementById("toggleTheme").addEventListener("click", () => {
+      const container = document.getElementById("mainContainer");
+      isDark = !isDark;
+      container.classList.toggle("dark-theme", isDark);
+      container.classList.toggle("light-theme", !isDark);
+    });
+    document.getElementById("exportBtn").addEventListener("click", exportTasks);
+
+    renderTasks();
+  </script>
+</body>
+</html>
